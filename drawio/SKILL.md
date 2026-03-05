@@ -82,6 +82,13 @@ Block diagrams:
 - Use rounded rectangles or process/step shapes.
 - Keep palette consistent for functional groups.
 - Use orthogonal edges unless user asks for curved wiring.
+- External signal arrows (stub arrows entering/leaving a block from outside):
+  - Do NOT use text-label vertices as edge `source`/`target`. The orthogonal router cannot keep the line straight when one endpoint is a small text cell at a different position.
+  - Instead, use explicit `sourcePoint`/`targetPoint` coordinates in `mxGeometry` and connect only one end to the block via `entryX/entryY` or `exitX/exitY` constraints. This produces a perfectly straight line.
+  - Place the text label as a standalone vertex near the arrow endpoint (not connected to the edge).
+- Multiple arrows on the same side of a block:
+  - Pin each edge to a distinct connection point using `entryX/entryY` (for inputs) or `exitX/exitY` (for outputs) with different Y fractions (e.g. `0.25` and `0.75`).
+  - Without explicit constraints the auto-router merges nearby edges into one overlapping path.
 
 Electrical components:
 - Reuse electrical template styles/layout direction first.
@@ -260,6 +267,8 @@ Notes:
 
 - XML is valid and base cells (`id=0`, `id=1`) exist.
 - No dangling `source`/`target` edge references.
+- External signal arrows are straight (no unnecessary bends from auto-routing through text-label vertices).
+- Multiple arrows entering/leaving the same block side are visually distinct (not merged/overlapping).
 - No text truncation, clipping, or overlap at target export scale.
 - Arrow labels are readable and not colliding with connectors.
 - Background/frame containers keep internal margin and no overflow.
