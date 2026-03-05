@@ -39,11 +39,6 @@ High-value sources for style/template decisions:
 - `references/drawio/src/main/webapp/templates/`
 - `references/drawio/src/main/webapp/styles/default.xml`
 
-Round bookkeeping templates:
-- `references/refinement_templates/target_reference.md`
-- `references/refinement_templates/acceptance_checklist.md`
-- `references/refinement_templates/round_review.md`
-
 ## .drawio Structure To Produce
 
 A valid file is an `<mxfile>` root with one or more `<diagram>` pages.
@@ -83,12 +78,36 @@ Block diagrams:
 - Keep palette consistent for functional groups.
 - Use orthogonal edges unless user asks for curved wiring.
 - External signal arrows (stub arrows entering/leaving a block from outside):
-  - Do NOT use text-label vertices as edge `source`/`target`. The orthogonal router cannot keep the line straight when one endpoint is a small text cell at a different position.
-  - Instead, use explicit `sourcePoint`/`targetPoint` coordinates in `mxGeometry` and connect only one end to the block via `entryX/entryY` or `exitX/exitY` constraints. This produces a perfectly straight line.
+  - Do NOT use text-label vertices as edge `source`/`target`. The orthogonal router creates bends when one endpoint is a small text cell at a misaligned position.
+  - Instead, use explicit `sourcePoint`/`targetPoint` coordinates in `mxGeometry` and connect only one end to the block via `entryX/entryY` or `exitX/exitY` constraints.
   - Place the text label as a standalone vertex near the arrow endpoint (not connected to the edge).
 - Multiple arrows on the same side of a block:
   - Pin each edge to a distinct connection point using `entryX/entryY` (for inputs) or `exitX/exitY` (for outputs) with different Y fractions (e.g. `0.25` and `0.75`).
   - Without explicit constraints the auto-router merges nearby edges into one overlapping path.
+
+External signal arrow patterns (input arrow into left side at 25%, output arrow from left side at 75%):
+
+```xml
+<!-- Input: straight arrow from fixed point into block at entryY=0.25 -->
+<mxCell id="lbl_in" value="sig_in" style="text;html=1;resizable=0;points=[];autosize=1;align=right;verticalAlign=middle;fontSize=16;fontFamily=Verdana;" parent="1" vertex="1">
+  <mxGeometry x="10" y="135" width="80" height="30" as="geometry"/>
+</mxCell>
+<mxCell id="e_in" style="html=1;endArrow=block;endFill=1;startArrow=none;startFill=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" parent="1" target="block1" edge="1">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="100" y="150" as="sourcePoint"/>
+  </mxGeometry>
+</mxCell>
+
+<!-- Output: straight arrow from block at exitY=0.75 to fixed point -->
+<mxCell id="lbl_out" value="sig_out" style="text;html=1;resizable=0;points=[];autosize=1;align=right;verticalAlign=middle;fontSize=16;fontFamily=Verdana;" parent="1" vertex="1">
+  <mxGeometry x="10" y="195" width="80" height="30" as="geometry"/>
+</mxCell>
+<mxCell id="e_out" style="html=1;endArrow=block;endFill=1;startArrow=none;startFill=0;exitX=0;exitY=0.75;exitDx=0;exitDy=0;" parent="1" source="block1" edge="1">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="100" y="210" as="targetPoint"/>
+  </mxGeometry>
+</mxCell>
+```
 
 Electrical components:
 - Reuse electrical template styles/layout direction first.
@@ -122,123 +141,23 @@ Choose one mode explicitly before editing:
   - high-fidelity reproduction is critical
 - Round 0 is mandatory before structural edits.
 
-## Subagent Usage (Large Inputs)
+## Subagent Delegation
 
-Use subagents to keep main-context usage low when the task requires broad scanning of large draw.io source trees.
+Delegate to subagents to keep main context clean. Never load multiple full diagram XMLs in main context unless the user explicitly asks for raw XML.
 
-- Hard rule: avoid loading multiple full diagram XML files in main context unless the user explicitly asks for raw XML inspection.
-- Hard rule: if operation scope is broad, delegate extraction/comparison and keep only decisions/deltas in main context.
-- Delegate by default when any threshold is hit:
-  - file size over `150 KB`
-  - more than `2` diagrams/pages in one comparison task
-  - more than `3` candidate templates for base selection
-- Delegate when searching across `references/drawio/src/main/webapp/**` for template/style internals.
-- Delegate when comparing many candidate templates before selecting one base template.
-- Delegate when doing repeated export-and-inspect loops for visual refinement.
-- Keep returns concise: selected template path, key style tokens, and concrete patch plan (no large raw file dumps).
+Delegate when any threshold is hit:
+- file size > `150 KB`, or > `2` diagrams in one comparison, or > `3` candidate templates
+- searching across `references/drawio/src/main/webapp/**` for templates/styles
+- repeated export-and-inspect loops for visual refinement
 
-Main agent should keep only the final decisions and deltas in context.
+Keep only decisions and deltas in main context; request concise semantic summaries from subagents.
 
-## Delegation Templates
-
-### Understand Diagram
-
-```
-Task: Extract and explain structure in [file.drawio|file.xml]
-
-Approach:
-1. Read diagram XML or decode compressed page content when needed
-2. Extract semantic elements (labels, containers, connectors, groups)
-3. Identify relationships and flow direction
-4. Summarize architecture/flow without raw XML dump
-
-Return:
-- Components/elements with brief roles
-- Connector relationships
-- Key layout/style observations relevant to requested task
-- No full raw XML unless explicitly requested
-```
-
-### Modify Diagram
-
-```
-Task: Add/update [component/change] in [file] while preserving existing structure
-
-Approach:
-1. Identify target page and related element IDs
-2. Apply minimal-delta XML edits
-3. Preserve existing valid regions and connector semantics
-4. Validate XML integrity and edge references
-
-Return:
-- What changed
-- IDs affected/created
-- Any assumptions made
-- Validation status
-```
-
-### Create Diagram
-
-```
-Task: Create a new Draw.io diagram for [description]
-
-Approach:
-1. Select closest base template or start minimal uncompressed mxGraphModel
-2. Add required components and connectors
-3. Apply consistent style tokens and spacing
-4. Export PNG (when tooling available) for verification
-
-Return:
-- File path created
-- Main components included
-- Template source (or scratch)
-- Export/verification status
-```
-
-### Compare Diagrams
-
-```
-Task: Compare [file1] and [file2] for architecture and style differences
-
-Approach:
-1. Extract semantic elements and relationships from each
-2. Compare structure, flows, and visible style conventions
-3. Identify additions/removals/reroutes
-
-Return:
-- Key structural differences
-- Key style/layout differences
-- Recommended merge/next edit plan
-- No large XML payloads
-```
-
-## Red Flags - Stop and Delegate
-
-- About to open many template/style files only to shortlist candidates.
-- About to compare multiple large diagrams side-by-side in main context.
-- About to paste full XML into the user response without explicit request.
-- About to run repeated inspect loops while keeping every prior dump in context.
-- About to read compressed pages from several files just for component names.
-
-If any red flag appears, delegate and request concise semantic summaries.
-
-## Common Rationalizations (Avoid)
-
-| Rationalization | Why it is risky | Correct action |
+| Operation | Delegate for | Expected return |
 |---|---|---|
-| "It is just one quick XML check" | Quick checks still load high-noise structure and IDs | Delegate extraction of needed fields |
-| "Single file means safe to read directly" | A single large diagram can still pollute context | Apply thresholds and delegate when hit |
-| "I need full XML to compare" | Most comparisons are semantic, not raw-token complete | Delegate compare and keep diff summary |
-| "I will paste XML so user sees everything" | Large payload harms usability and review speed | Return concise summary plus file path |
-
-## Operation Quick Reference
-
-| Operation | Main agent action | Expected subagent return |
-|---|---|---|
-| Understand | Delegate semantic extraction | Components + relationships summary |
-| Modify | Delegate targeted patching | Changes, affected IDs, validation status |
-| Create | Delegate template/scratch creation | New file path + component summary |
-| Compare | Delegate semantic diff | Structural/style differences + plan |
+| Understand | Semantic extraction from diagram XML | Components + relationships summary |
+| Modify | Targeted patching of existing diagram | Changes, affected IDs, validation status |
+| Create | Template selection or scratch creation | New file path + component summary |
+| Compare | Structural/style diff of two diagrams | Differences + recommended edit plan |
 
 ## PNG Conversion Script
 
@@ -287,36 +206,24 @@ Use this mode when rigor or auditability is required.
 6. Validate XML integrity and no-regression after each round.
 7. Exit when all P0/P1 checks pass or work is blocked by missing user input.
 
-Detailed step template and round bookkeeping:
-- `references/full-refinement-workflow.md`
-- `references/refinement_templates/target_reference.md`
-- `references/refinement_templates/acceptance_checklist.md`
-- `references/refinement_templates/round_review.md`
+Additional rules for Full Refinement:
+- Require a no-regression check: previously passed checklist items must remain passed.
+- Keep each round auditable with explicit inputs, findings, and delta plan.
 
 ## Rapid Convergence Rules
 
-- When multiple reference images exist, treat the latest image as the target unless the user explicitly says otherwise; state this assumption briefly and proceed.
+- When multiple reference images exist, treat the latest image as the target unless the user explicitly says otherwise.
 - If primary reference or style direction is ambiguous, ask one concise blocking question before edits.
 - Prefer minimal-delta revisions: change only the attributes needed to close visible gaps.
-- Do not mix geometry and style changes blindly; separate passes reduce back-and-forth.
+- Do not mix geometry and style changes in the same pass; separate passes reduce back-and-forth.
 - Fix text fitting by adjusting font size/line breaks before resizing blocks.
-- Keep connector semantics stable across revisions (direction, endpoints, routing family) unless mismatch is explicit in the target.
+- Keep connector semantics stable across revisions unless mismatch is explicit in the target.
 - Preserve previously correct regions; avoid global restyling when only local mismatches are reported.
-- In Full Refinement mode, require a no-regression check: previously passed checklist items must remain passed.
-- In Full Refinement mode, keep each round auditable with explicit inputs, findings, and delta plan.
 
 ## Compression/Decompression Contract
 
-When converting page content:
-
-- Compress page model text with `Graph.compress(...)` semantics used by repo:
-  `base64(deflateRaw(encodeURIComponent(xml)))`.
-- Decompress with reverse operation.
-
-Reference implementations in repo:
-
-- `references/drawio/src/main/webapp/js/grapheditor/Graph.js` (`Graph.compress`, `Graph.decompress`, `Graph.compressNode`)
-- `references/drawio/src/main/webapp/js/diagramly/Editor.js` (`Editor.parseDiagramNode`, `Editor.getDiagramNodeXml`)
+Compress: `base64(deflateRaw(encodeURIComponent(xml)))`. Decompress: reverse.
+Reference: `Graph.compress`/`Graph.decompress` in `references/drawio/src/main/webapp/js/grapheditor/Graph.js`.
 
 ## Deliverable Expectations
 
