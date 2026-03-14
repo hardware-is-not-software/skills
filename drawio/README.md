@@ -2,6 +2,17 @@
 
 Create diagrams .drawio format using LLM.
 
+## Custom References
+
+Create a folder named `custom_references` in this skill directory and place your own reference files there.
+
+Use this folder for any local style or diagram references you want the skill to follow, for example:
+- reference `.drawio` files
+- reference images such as `.png` or `.jpg`
+- short notes in `.md`
+
+The skill will look in `custom_references/` first when checking for project-specific references and style guidance.
+
 ## Prompt Guide
 
 Style reference requirement:

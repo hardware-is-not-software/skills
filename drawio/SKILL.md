@@ -10,11 +10,23 @@ Use this skill when asked to create or modify `.drawio`/template XML diagrams in
 ## Scope
 
 - Primary: block diagrams and mixed block + electrical diagrams.
+- Priority input source: project-local references in `custom_references/` when that folder exists.
 - Input source: existing templates in `references/drawio/src/main/webapp/templates/**`.
 - Input source: new diagrams from scratch (`<mxfile><diagram><mxGraphModel>...`).
 - Iterative visual matching from one or more user-provided reference images.
 - Edit only `.drawio` or `.xml` diagram sources. Never manually edit generated `.drawio.png` files.
-- Japanese-specific typography guidance is out of scope for this skill.
+
+## Custom References Requirement
+
+Before selecting templates, colors, fonts, or layout conventions, always check whether `custom_references/` exists in this skill directory.
+
+If `custom_references/` exists:
+- Read its contents first and treat them as the highest-priority project-specific style guidance.
+- Look for reference diagrams, screenshots, notes, and style definitions such as `.drawio`, `.png`, `.jpg`, and `.md`.
+- Prefer those references over generic defaults when they provide relevant guidance.
+- If the folder contains multiple relevant references, synthesize them into one consistent style and mention that you used them.
+
+Do not skip this lookup. It is a required early step for diagram work in this repository.
 
 ## Fast Template Selection
 
@@ -36,6 +48,7 @@ For copy-paste starter patterns (block and electrical), read:
 - `references/preferred_shapes.md`
 
 High-value sources for style/template decisions:
+- `custom_references/`
 - `references/drawio/src/main/webapp/templates/`
 - `references/drawio/src/main/webapp/styles/default.xml`
 
@@ -84,6 +97,9 @@ Block diagrams:
 - Multiple arrows on the same side of a block:
   - Pin each edge to a distinct connection point using `entryX/entryY` (for inputs) or `exitX/exitY` (for outputs) with different Y fractions (e.g. `0.25` and `0.75`).
   - Without explicit constraints the auto-router merges nearby edges into one overlapping path.
+  - Treat `1 -> N` fanout from one block as a special case: distinct `entryY`/`exitY` values are required but may still be insufficient.
+  - If the exported PNG shows a shared trunk segment before branches split, add explicit `mxPoint` waypoints so each branch is visually separate from the first segment leaving the block.
+  - Unless the user explicitly asks for a bus, do not allow outputs to share any overlapping connector segment.
 
 External signal arrow patterns (input arrow into left side at 25%, output arrow from left side at 75%):
 
@@ -109,6 +125,35 @@ External signal arrow patterns (input arrow into left side at 25%, output arrow 
 </mxCell>
 ```
 
+Fanout anti-merge pattern (three distinct outputs, no shared trunk):
+
+```xml
+<mxCell id="e_out_a" style="html=1;endArrow=block;endFill=1;startArrow=none;startFill=0;exitX=1;exitY=0.2;exitDx=0;exitDy=0;" parent="1" source="block1" target="sinkA" edge="1">
+  <mxGeometry relative="1" as="geometry">
+    <Array as="points">
+      <mxPoint x="760" y="140"/>
+      <mxPoint x="880" y="140"/>
+    </Array>
+  </mxGeometry>
+</mxCell>
+<mxCell id="e_out_b" style="html=1;endArrow=block;endFill=1;startArrow=none;startFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="block1" target="sinkB" edge="1">
+  <mxGeometry relative="1" as="geometry">
+    <Array as="points">
+      <mxPoint x="760" y="200"/>
+      <mxPoint x="880" y="200"/>
+    </Array>
+  </mxGeometry>
+</mxCell>
+<mxCell id="e_out_c" style="html=1;endArrow=block;endFill=1;startArrow=none;startFill=0;exitX=1;exitY=0.8;exitDx=0;exitDy=0;" parent="1" source="block1" target="sinkC" edge="1">
+  <mxGeometry relative="1" as="geometry">
+    <Array as="points">
+      <mxPoint x="760" y="260"/>
+      <mxPoint x="880" y="260"/>
+    </Array>
+  </mxGeometry>
+</mxCell>
+```
+
 Electrical components:
 - Reuse electrical template styles/layout direction first.
 - Keep connection topology explicit with edge source/target ids.
@@ -130,6 +175,7 @@ Choose one mode explicitly before editing:
   - valid XML
   - required base cells
   - no dangling edges
+  - no unintended merged connectors in any `1 -> N` fanout
   - visual comparison via exported PNG when export tooling is available
 - If visual mismatch remains after 1-2 quick passes, escalate to Full Refinement.
 
@@ -188,6 +234,7 @@ Notes:
 - No dangling `source`/`target` edge references.
 - External signal arrows are straight (no unnecessary bends from auto-routing through text-label vertices).
 - Multiple arrows entering/leaving the same block side are visually distinct (not merged/overlapping).
+- `1 -> N` fanout does not share a trunk segment unless the target style explicitly calls for a bus.
 - No text truncation, clipping, or overlap at target export scale.
 - Arrow labels are readable and not colliding with connectors.
 - Background/frame containers keep internal margin and no overflow.
