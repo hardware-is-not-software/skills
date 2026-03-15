@@ -76,6 +76,22 @@ Minimal uncompressed shape:
 </mxfile>
 ```
 
+## Stencil Shape Naming Convention
+
+Stencil shapes live in `references/drawio/src/main/webapp/stencils/electrical/`. Each XML file defines a `<shapes name="mxgraph.electrical.<category>">` block containing `<shape name="Human Readable Name">` elements.
+
+To use a stencil shape in a cell style, convert the human-readable name: **lowercase everything, replace spaces with underscores**.
+
+| Stencil XML `name=` | Style `shape=` value |
+|---|---|
+| `MOSFET IC N` | `mxgraph.electrical.mosfets1.mosfet_ic_n` |
+| `Regen Comparator` | `mxgraph.electrical.op_amps.regen_comparator` |
+| `Signal Ground` | `mxgraph.electrical.signal_sources.signal_ground` |
+| `DC Source 2` | `mxgraph.electrical.signal_sources.dc_source_2` |
+| `NMOS` | `mxgraph.electrical.transistors.nmos` |
+
+When a shape doesn't render (falls back to a plain rectangle), the name is wrong. Grep the stencil XMLs to find the correct `name=` attribute, then apply the conversion above.
+
 ## Cell Authoring Rules
 
 - Always include base cells `<mxCell id="0"/>` and `<mxCell id="1" parent="0"/>`.
@@ -159,6 +175,10 @@ Electrical components:
 - Keep connection topology explicit with edge source/target ids.
 - Use text labels for component names, ratings, or ports where needed.
 - If label anchoring behaves unexpectedly, use explicit `sourcePoint`/`targetPoint` coordinates on edges.
+- For wires connecting multiple component pins (e.g. driving two MOSFET gates from one op-amp output), use explicit `Array` waypoints to route around component bodies instead of drawing straight through them.
+- When rotating components (e.g. `rotation=-90` on a resistor), connection points rotate around the geometry center. A horizontal resistor's left terminal becomes the top terminal after -90° rotation.
+- After placing components, sanity-check the circuit electrically (bias points, current paths) before exporting. A visually plausible layout can still be topologically wrong (e.g. shorting a reference to a supply rail).
+- On the first PNG export, compare component arrow/polarity direction against the reference image. Choosing the wrong variant (e.g. NMOS vs PMOS) is easy to miss in XML but obvious in the render.
 
 Container/frame spacing:
 - Keep at least `24-30px` margin between a background container and internal elements.
