@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EUR ⇄ USD Converter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>EUR ⇄ USD Converter</h1>
+
+    <div class="field">
+      <label for="eur">EUR</label>
+      <div class="input-wrap">
+        <span class="prefix">€</span>
+        <input type="text" inputmode="decimal" id="eur" placeholder="0.00" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="divider">⇄</div>
+
+    <div class="field">
+      <label for="usd">USD</label>
+      <div class="input-wrap">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="decimal" id="usd" placeholder="0.00" autocomplete="off" />
+      </div>
+    </div>
+
+    <p class="rate-line">
+      <span id="rate-text">Loading exchange rate…</span>
+      <button id="refresh" title="Refresh rate">⟳</button>
+    </p>
+    <p class="updated" id="updated"></p>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
